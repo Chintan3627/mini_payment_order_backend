@@ -40,4 +40,57 @@ http://127.0.0.1:8000
   pip freeze > requirements.txt
 
 
+# 6. Deployment (Gunicorn + Nginx)
+
+## Gunicorn Service  
+`config/gunicorn.service`:
+```
+[Unit]
+Description=Gunicorn daemon
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/path/to/backend
+ExecStart=/path/to/backend/venv/bin/gunicorn project.wsgi:application --bind unix:/run/gunicorn.sock --workers 3
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl start gunicorn
+sudo systemctl enable gunicorn
+```
+
+---
+
+## Nginx Config  
+`config/nginx.conf`:
+```
+server {
+    listen 80;
+    server_name your_domain_or_ip;
+
+    location /static/ {
+        alias /path/to/backend/static/;
+    }
+
+    location / {
+        proxy_pass http://unix:/run/gunicorn.sock;
+        include proxy_params;
+    }
+}
+```
+
+Enable:
+```bash
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+
+
 
